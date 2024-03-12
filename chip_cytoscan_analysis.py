@@ -33,17 +33,18 @@ def compare_with_reference(data_row, reference, min_range, max_range):
 	for index, reference_row in reference.iterrows():
 		if resolve_row('ChrFrom', data_row, reference_row, min_range, max_range) or \
 				resolve_row('ChrTo', data_row, reference_row, min_range, max_range):
-			return True
+			return True, index+1
 
-	return False
+	return False, -1
 
 
 def is_row_valid(row, reference, min_range, max_range):
 	if check_filter_value(row):
-		if compare_with_reference(row, reference, min_range, max_range):
-			return True
+		valid, ref_id = compare_with_reference(row, reference, min_range, max_range)
+		if valid:
+			return True, ref_id
 
-	return False
+	return False, -1
 
 
 def write_line_to_file(row, file_path):
@@ -56,13 +57,15 @@ def process_data(reference_filepath, data_filepath, result_path, min_range, max_
 	reference = load_data_reference(reference_filepath)
 	data = load_table(data_filepath)
 	counter = 0
+	write_line_to_file(data.columns, result_path)
 
 	for index, row in data.iterrows():
 		# sometimes there are lines with only this content, maybe due to TSV (don't know)
 		if row['ChrFrom'] == './.:.:.,.':
 			continue
-
-		if is_row_valid(row, reference, min_range, max_range):
+		is_valid, reference_id = is_row_valid(row, reference, min_range, max_range)
+		if is_valid:
+			row['reference_line'] = reference_id
 			write_line_to_file(row, result_path)
 			print(index, row)
 			counter += 1
